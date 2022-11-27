@@ -55,13 +55,12 @@ public class CreateGroup extends HttpServlet {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
-			
-			
-			
+
 //			check if user is an active user:
 			preparedStatement = con.prepareStatement("select * from user where user_id ="+request.getParameter("user_id")+
 					" and active = 2;");
-			if(preparedStatement.executeUpdate() == 0) {
+            resultSet = preparedStatement.executeQuery();
+			if(!resultSet.next()) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
 				jsonObject.addProperty("MESSAGE", "User is still inactive");
@@ -105,7 +104,7 @@ public class CreateGroup extends HttpServlet {
 		catch(Exception e) {
 			jsonObject = new JsonObject();
 			jsonObject.addProperty("SUCCESS", "FALSE");
-			jsonObject.addProperty("MESSAGE", "Exception occured");
+			jsonObject.addProperty("MESSAGE", e.toString());
 			out.print(jsonObject.toString());
 		}finally {
 			try {

@@ -56,7 +56,8 @@ public class ApproveMember extends HttpServlet {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 			preparedStatement = con.prepareStatement("select * from user where is_admin = 1 and user_id ="+request.getParameter("admin_id"));
-			if(preparedStatement.executeUpdate() == 0) {
+			resultSet =  preparedStatement.executeQuery();
+            if( !resultSet.next()) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
 				jsonObject.addProperty("MESSAGE", "Only Admin can approve new member to application");
@@ -96,7 +97,7 @@ public class ApproveMember extends HttpServlet {
 		catch(Exception e) {
 			jsonObject = new JsonObject();
 			jsonObject.addProperty("SUCCESS", "FALSE");
-			jsonObject.addProperty("MESSAGE", "Exception occured");
+			jsonObject.addProperty("MESSAGE", e.toString());
 			out.print(jsonObject.toString());
 		}
 		finally {
