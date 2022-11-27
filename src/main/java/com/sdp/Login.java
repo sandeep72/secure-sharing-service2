@@ -58,8 +58,8 @@ public class Login extends HttpServlet {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 
-			preparedStatement = con.prepareStatement("select * from User where email ="+request.getParameter("email")+
-					" and password = "+request.getParameter("password"));
+			preparedStatement = con.prepareStatement("select * from user where email ='"+request.getParameter("email")+
+					"' and password = '"+request.getParameter("password")+"';");
 			
 			resultSet = preparedStatement.executeQuery();
 			
@@ -67,7 +67,7 @@ public class Login extends HttpServlet {
 				if(resultSet.getInt("active") == 2 ) {
 					
 					user = new User(
-							Long.parseLong(resultSet.getString("id")),
+							resultSet.getLong("user_id"),
 							resultSet.getString("name"),
 							resultSet.getString("email"),
 							resultSet.getString("password"),
@@ -75,17 +75,17 @@ public class Login extends HttpServlet {
 							resultSet.getInt("is_admin")
 							);
 					jsonObject = new JsonObject();
-					jsonObject.addProperty("USER", this.gson.toJson(user));
+					jsonObject.add("USER", this.gson.toJsonTree(user).getAsJsonObject());
 					jsonObject.addProperty("SUCCESS", "TRUE");
-					preparedStatement = con.prepareStatement("select * from member where user_id ="+request.getParameter("email"));
+					preparedStatement = con.prepareStatement("select * from member where user_id ="+resultSet.getLong("user_id")+";");
 					ResultSet groupResultSet = preparedStatement.executeQuery();
 					ArrayList<Group> groupList = new ArrayList<>();
 					
 					while(groupResultSet.next()) {
 						groupList.add(new Group(
-								resultSet.getLong("id"),
-								resultSet.getLong("user_id"),
-								resultSet.getString("name")
+                                    groupResultSet.getLong("group_id"),
+                                    groupResultSet.getLong("user_id"),
+                                    groupResultSet.getString("name")
 								));
 					}
 					JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();
@@ -111,7 +111,7 @@ public class Login extends HttpServlet {
 		} catch (Exception e) {
 			jsonObject = new JsonObject();
 			jsonObject.addProperty("SUCCESS", "FALSE");
-			jsonObject.addProperty("MESSAGE", "Exception occured");
+			jsonObject.addProperty("MESSAGE", e.toString());
 			out.print(jsonObject.toString());
 		} finally {
 			out.close();
@@ -121,7 +121,7 @@ public class Login extends HttpServlet {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}	
+		}
 	}
 
 	/**

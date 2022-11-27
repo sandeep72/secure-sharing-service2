@@ -50,7 +50,7 @@ public class Register extends HttpServlet {
 			
 			if(request.getParameter("name").length()<=100 && request.getParameter("email").length()<100 && request.getParameter("password").length()<=128)
 			{
-				preparedStatement = con.prepareStatement("select * from catalog where isbn ="+request.getParameter("isbn")+";");
+				preparedStatement = con.prepareStatement("select * from user where email ="+request.getParameter("email"));
 				resultSet = preparedStatement.executeQuery();
 				if(!resultSet.next()) {
 					preparedStatement = con.prepareStatement("insert into user (name, email, password, active,is_admin)"

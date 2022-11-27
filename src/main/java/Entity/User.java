@@ -54,6 +54,11 @@ public class User {
 	public void setIs_admin(int is_admin) {
 		this.is_admin = is_admin;
 	}
+	@Override
+	public String toString() {
+		return "User [id=" + id + ", name=" + name + ", email=" + email + ", password=" + password + ", active="
+				+ active + ", is_admin=" + is_admin + "]";
+	}
     
     
     

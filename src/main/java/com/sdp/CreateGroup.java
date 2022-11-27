@@ -55,25 +55,27 @@ public class CreateGroup extends HttpServlet {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
-			preparedStatement = con.prepareStatement("insert into group_table (user_id, group_name) values(?,?);");
-			preparedStatement.setString(1,request.getParameter("user_id"));
-			preparedStatement.setString(2, request.getParameter("group_name"));
-			int affectedRows = preparedStatement.executeUpdate();
+			
+			
 			
 //			check if user is an active user:
 			preparedStatement = con.prepareStatement("select * from user where user_id ="+request.getParameter("user_id")+
-					" and active = 1;");
+					" and active = 2;");
 			if(preparedStatement.executeUpdate() == 0) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
-				jsonObject.addProperty("MESSAGE", "Error creating group, please try after sometime");
+				jsonObject.addProperty("MESSAGE", "User is still inactive");
 				out.print(jsonObject.toString());
 				out.close();
 				return;	
 			}
 			
+			preparedStatement = con.prepareStatement("insert into group_table (user_id, group_name) values(?,?);");
+			preparedStatement.setLong(1,Long.parseLong(request.getParameter("user_id")));
+			preparedStatement.setString(2, request.getParameter("group_name"));
+			int affectedRows = preparedStatement.executeUpdate();
 			
-			if(affectedRows == 1 ) {
+			if(affectedRows >0 ) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
 				preparedStatement = con.prepareStatement("select * from member where user_id ="+request.getParameter("user_id"));
@@ -81,9 +83,9 @@ public class CreateGroup extends HttpServlet {
 				ArrayList<Group> groupList = new ArrayList<>();
 				while(groupResultSet.next()) {
 					groupList.add(new Group(
-							resultSet.getLong("id"),
-							resultSet.getLong("user_id"),
-							resultSet.getString("name")
+							groupResultSet.getLong("group_id"),
+							groupResultSet.getLong("user_id"),
+							groupResultSet.getString("name")
 							));
 				}
 				JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();

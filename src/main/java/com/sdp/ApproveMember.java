@@ -64,24 +64,22 @@ public class ApproveMember extends HttpServlet {
 				return;	
 			}
 			
-			preparedStatement = con.prepareStatement("update user set active = 1 where user_id ="+request.getParameter("user_id"));
+			preparedStatement = con.prepareStatement("update user set active = 2 where user_id ="+request.getParameter("user_id"));
 			if(preparedStatement.executeUpdate() == 0) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
 				jsonObject.addProperty("MESSAGE", "Error updating member status, please try after sometime");
 				out.print(jsonObject.toString());
-
 				return;	
 			}else {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
-				
-				preparedStatement = con.prepareStatement("select * from user where active = 0;");
+				preparedStatement = con.prepareStatement("select * from user where active = 1;");
 				ResultSet userResultSet = preparedStatement.executeQuery();
 				ArrayList<User> userList = new ArrayList<>();
 				while(userResultSet.next()) {
 					userList.add(new User(
-							userResultSet.getLong("id"),
+							userResultSet.getLong("user_id"),
 							userResultSet.getString("name"),
 							userResultSet.getString("email"),
 							"DUMMY",
