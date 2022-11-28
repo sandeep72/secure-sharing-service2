@@ -44,6 +44,7 @@ public class CreateGroup extends HttpServlet {
 //		response.getWriter().append("Served at: ").append(request.getContextPath());
 		
 		
+		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		PrintWriter out = response.getWriter();
@@ -51,6 +52,7 @@ public class CreateGroup extends HttpServlet {
 		ResultSet resultSet = null;
 		Connection con = null;
 		JsonObject jsonObject = null;
+		Gson gson = new Gson();
 		
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
@@ -77,18 +79,18 @@ public class CreateGroup extends HttpServlet {
 			if(affectedRows >0 ) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
-				preparedStatement = con.prepareStatement("select * from member where user_id ="+request.getParameter("user_id"));
-				ResultSet groupResultSet = preparedStatement.executeQuery();
-				ArrayList<Group> groupList = new ArrayList<>();
-				while(groupResultSet.next()) {
-					groupList.add(new Group(
-							groupResultSet.getLong("group_id"),
-							groupResultSet.getLong("user_id"),
-							groupResultSet.getString("name")
-							));
-				}
-				JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();
-				jsonObject.add("GROUPLIST",jarray);
+//				preparedStatement = con.prepareStatement("select * from member where user_id ="+request.getParameter("user_id"));
+//				ResultSet groupResultSet = preparedStatement.executeQuery();
+//				ArrayList<Group> groupList = new ArrayList<>();
+//				while(groupResultSet.next()) {
+//					groupList.add(new Group(
+//							groupResultSet.getLong("group_id"),
+//							groupResultSet.getLong("user_id"),
+//							groupResultSet.getString("name")
+//							));
+//				}
+//				JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();
+//				jsonObject.add("GROUPLIST",jarray);
 				out.print(jsonObject.toString());
 				return;	
 			}else {
@@ -126,4 +128,10 @@ public class CreateGroup extends HttpServlet {
 		doGet(request, response);
 	}
 
+	private void setAccessControlHeaders(HttpServletRequest request, HttpServletResponse response) {
+		response.addHeader("Access-Control-Allow-Origin", "*");
+		response.addHeader("Access-control-allows-headers", "Content-type");
+        response.addHeader("Access-Control-Allow-Methods","GET, OPTIONS, HEAD, PUT, POST, DELETE");
+	  }
+	
 }

@@ -19,7 +19,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import Entity.Group;
 import Entity.User;
 
 /**
@@ -43,6 +42,7 @@ public class ApproveMember extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 //		response.getWriter().append("Served at: ").append(request.getContextPath());
+		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		PrintWriter out = response.getWriter();
@@ -55,7 +55,7 @@ public class ApproveMember extends HttpServlet {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
-			preparedStatement = con.prepareStatement("select * from user where is_admin = 1 and user_id ="+request.getParameter("admin_id"));
+			preparedStatement = con.prepareStatement("select * from user where type = 'admin' and user_id ="+request.getParameter("admin_id"));
 			resultSet =  preparedStatement.executeQuery();
             if( !resultSet.next()) {
 				jsonObject = new JsonObject();
@@ -65,7 +65,11 @@ public class ApproveMember extends HttpServlet {
 				return;	
 			}
 			
-			preparedStatement = con.prepareStatement("update user set active = 2 where user_id ="+request.getParameter("user_id"));
+            if(request.getParameter("status").equals("Accept"))
+            	preparedStatement = con.prepareStatement("update user set active = 2 where user_id ="+request.getParameter("user_id"));
+            else
+            	preparedStatement = con.prepareStatement("update user set active = 0 where user_id ="+request.getParameter("user_id"));
+            
 			if(preparedStatement.executeUpdate() == 0) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
@@ -75,21 +79,21 @@ public class ApproveMember extends HttpServlet {
 			}else {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
-				preparedStatement = con.prepareStatement("select * from user where active = 1;");
-				ResultSet userResultSet = preparedStatement.executeQuery();
-				ArrayList<User> userList = new ArrayList<>();
-				while(userResultSet.next()) {
-					userList.add(new User(
-							userResultSet.getLong("user_id"),
-							userResultSet.getString("name"),
-							userResultSet.getString("email"),
-							"DUMMY",
-							userResultSet.getInt("active"),
-							userResultSet.getInt("is_admin")
-							));
-				}
-				JsonArray jarray = gson.toJsonTree(userList).getAsJsonArray();
-				jsonObject.add("USERLIST",jarray);
+//				preparedStatement = con.prepareStatement("select * from user where active = 1;");
+//				ResultSet userResultSet = preparedStatement.executeQuery();
+//				ArrayList<User> userList = new ArrayList<>();
+//				while(userResultSet.next()) {
+//					userList.add(new User(
+//							userResultSet.getLong("user_id"),
+//							userResultSet.getString("name"),
+//							userResultSet.getString("email"),
+//							"DUMMY",
+//							userResultSet.getInt("active"),
+//							userResultSet.getString("type")
+//							));
+//				}
+//				JsonArray jarray = gson.toJsonTree(userList).getAsJsonArray();
+//				jsonObject.add("USERLIST",jarray);
 				out.print(jsonObject.toString());
 				return;	
 			}
@@ -120,4 +124,9 @@ public class ApproveMember extends HttpServlet {
 		doGet(request, response);
 	}
 
+	private void setAccessControlHeaders(HttpServletRequest request, HttpServletResponse response) {
+		response.addHeader("Access-Control-Allow-Origin", "*");
+		response.addHeader("Access-control-allows-headers", "Content-type");
+        response.addHeader("Access-Control-Allow-Methods","GET, OPTIONS, HEAD, PUT, POST, DELETE");
+	  }
 }

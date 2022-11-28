@@ -1,14 +1,19 @@
 package com.sdp;
 
+
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.Key;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
+import javax.xml.bind.DatatypeConverter;
 
+import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -23,7 +28,9 @@ import com.google.gson.JsonObject;
 
 import Entity.Group;
 import Entity.User;
-
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 /**
  * Servlet implementation class Login
  */
@@ -44,6 +51,7 @@ public class Login extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		PrintWriter out = response.getWriter();
@@ -53,12 +61,13 @@ public class Login extends HttpServlet {
 		JsonObject jsonObject = null;
 		User user = null;
 		Connection con = null;
+		Gson gson = new Gson();   
 		
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 
-			preparedStatement = con.prepareStatement("select * from user where email ='"+request.getParameter("email")+
+			preparedStatement = con.prepareStatement("select * from user where email ='"+request.getParameter("username")+
 					"' and password = '"+request.getParameter("password")+"';");
 			
 			resultSet = preparedStatement.executeQuery();
@@ -72,24 +81,12 @@ public class Login extends HttpServlet {
 							resultSet.getString("email"),
 							resultSet.getString("password"),
 							resultSet.getInt("active"),
-							resultSet.getInt("is_admin")
+							resultSet.getString("type")
 							);
 					jsonObject = new JsonObject();
-					jsonObject.add("USER", this.gson.toJsonTree(user).getAsJsonObject());
+					jsonObject.add("USER", gson.toJsonTree(user).getAsJsonObject());
 					jsonObject.addProperty("SUCCESS", "TRUE");
-					preparedStatement = con.prepareStatement("select * from member where user_id ="+resultSet.getLong("user_id")+";");
-					ResultSet groupResultSet = preparedStatement.executeQuery();
-					ArrayList<Group> groupList = new ArrayList<>();
-					
-					while(groupResultSet.next()) {
-						groupList.add(new Group(
-                                    groupResultSet.getLong("group_id"),
-                                    groupResultSet.getLong("user_id"),
-                                    groupResultSet.getString("name")
-								));
-					}
-					JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();
-					jsonObject.add("GROUPLIST",jarray);
+					jsonObject.addProperty("TOKEN", createJWT(user));
 					out.print(jsonObject.toString());
 					out.flush();
 				}
@@ -131,6 +128,40 @@ public class Login extends HttpServlet {
 		// TODO Auto-generated method stub
 //		doGet(request, response);	
 		
+	}
+	private void setAccessControlHeaders(HttpServletRequest request, HttpServletResponse response) {
+		response.addHeader("Access-Control-Allow-Origin", "*");
+		response.addHeader("Access-control-allows-headers", "Content-type");
+        response.addHeader("Access-Control-Allow-Methods","GET, OPTIONS, HEAD, PUT, POST, DELETE");
+	  }
+	
+	public String createJWT(User user) {
+		  
+	    //The JWT signature algorithm we will be using to sign the token
+	    SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
+
+	    long nowMillis = System.currentTimeMillis();
+	    Date now = new Date(nowMillis);
+
+	    //We will sign our JWT with our ApiKey secret
+	    byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary("somerandomtext");
+	    Key signingKey = new SecretKeySpec(apiKeySecretBytes, signatureAlgorithm.getJcaName());
+
+	    //Let's set the JWT Claims
+	    JwtBuilder builder = Jwts.builder().setIssuedAt(now)
+	            .claim("user_id",String.valueOf(user.getUser_id()))
+	            .claim("password",String.valueOf(user.getPassword()))
+	            .claim("type",String.valueOf(user.getType()))
+	            .claim("name",String.valueOf(user.getName()))
+	            .claim("email",String.valueOf(user.getEmail()))
+	            .setIssuer("http://secure-sharing-service.com/")
+	            .signWith(signatureAlgorithm, signingKey);
+	  
+	    //if it has been specified, let's add the expiration
+	  
+	    //Builds the JWT and serializes it to a compact, URL-safe string
+	    return builder.compact();
+//	    https://developer.okta.com/blog/2018/10/31/jwts-with-java
 	}
 
 }
