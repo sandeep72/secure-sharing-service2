@@ -28,6 +28,7 @@ import com.google.gson.JsonObject;
 
 import Entity.Group;
 import Entity.User;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -51,6 +52,16 @@ public class Login extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+//		doGet(request, response);	
+		
 		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
@@ -66,7 +77,7 @@ public class Login extends HttpServlet {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
-
+			
 			preparedStatement = con.prepareStatement("select * from user where email ='"+request.getParameter("username")+
 					"' and password = '"+request.getParameter("password")+"';");
 			
@@ -90,6 +101,13 @@ public class Login extends HttpServlet {
 					out.print(jsonObject.toString());
 					out.flush();
 				}
+				else if(resultSet.getInt("active") == 0) {
+					jsonObject = new JsonObject();
+					jsonObject.addProperty("SUCCESS", "FALSE");
+					jsonObject.addProperty("MESSAGE", "Admin has rejected your acceptance");
+					out.print(jsonObject.toString());
+					return;	
+				}
 				else {// user is not yet approved by admin
 					jsonObject = new JsonObject();
 					jsonObject.addProperty("SUCCESS", "FALSE");
@@ -101,6 +119,7 @@ public class Login extends HttpServlet {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
 				jsonObject.addProperty("MESSAGE", "email or password incorrect");
+				jsonObject.addProperty("username", request.getParameter("username"));
 				out.print(jsonObject.toString());
 				return;	
 			}
@@ -119,14 +138,6 @@ public class Login extends HttpServlet {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-//		doGet(request, response);	
 		
 	}
 	private void setAccessControlHeaders(HttpServletRequest request, HttpServletResponse response) {
@@ -164,4 +175,12 @@ public class Login extends HttpServlet {
 //	    https://developer.okta.com/blog/2018/10/31/jwts-with-java
 	}
 
+	public boolean check(String string) {
+		if(string.contains("select") || string.contains("delete") || string.contains("update") || string.contains("insert") || string.contains("create")) {
+			return false;
+		}
+		if(string.length()>100)
+			return false;
+		return true;
+	}
 }

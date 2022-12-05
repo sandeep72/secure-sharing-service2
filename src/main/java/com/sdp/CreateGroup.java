@@ -20,6 +20,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import Entity.Group;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureException;
 
 /**
  * Servlet implementation class CreateGroup
@@ -42,8 +45,6 @@ public class CreateGroup extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 //		response.getWriter().append("Served at: ").append(request.getContextPath());
-		
-		
 		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
@@ -58,39 +59,50 @@ public class CreateGroup extends HttpServlet {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 
-//			check if user is an active user:
-			preparedStatement = con.prepareStatement("select * from user where user_id ="+request.getParameter("user_id")+
-					" and active = 2;");
+			
+			String user_id="0";
+			try {
+				String token = request.getParameter("token");
+				Claims claims = Jwts.parser().setSigningKey("somerandomtext").parseClaimsJws(token).getBody();
+				String email = claims.get("email", String.class);
+				String password = claims.get("password", String.class);
+				user_id = claims.get("user_id", String.class);
+				preparedStatement = con.prepareStatement("select * from user where email ='"+email+
+						"' and password = '"+password+"';");
+				resultSet = preparedStatement.executeQuery();
+				if(!resultSet.next() ) {
+					jsonObject = new JsonObject();
+					jsonObject.addProperty("SUCCESS", "FALSE");
+					jsonObject.addProperty("MESSAGE", "Authentication failed");
+					out.print(jsonObject.toString());
+					return;	
+				}
+			}
+			catch (SignatureException e) {  
+				jsonObject = new JsonObject();
+				jsonObject.addProperty("SUCCESS", "FALSE");
+				jsonObject.addProperty("MESSAGE", "Authentication failed");
+				out.print(jsonObject.toString());
+			}
+			
+			preparedStatement = con.prepareStatement("select * from user where user_id ="+user_id+" and active = 2;");
             resultSet = preparedStatement.executeQuery();
 			if(!resultSet.next()) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
-				jsonObject.addProperty("MESSAGE", "User is still inactive");
+				jsonObject.addProperty("MESSAGE", "User is inactive");
 				out.print(jsonObject.toString());
 				out.close();
 				return;	
 			}
-			
 			preparedStatement = con.prepareStatement("insert into group_table (user_id, group_name) values(?,?);");
-			preparedStatement.setLong(1,Long.parseLong(request.getParameter("user_id")));
+			preparedStatement.setLong(1,Long.parseLong(user_id));
 			preparedStatement.setString(2, request.getParameter("group_name"));
 			int affectedRows = preparedStatement.executeUpdate();
 			
 			if(affectedRows >0 ) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
-//				preparedStatement = con.prepareStatement("select * from member where user_id ="+request.getParameter("user_id"));
-//				ResultSet groupResultSet = preparedStatement.executeQuery();
-//				ArrayList<Group> groupList = new ArrayList<>();
-//				while(groupResultSet.next()) {
-//					groupList.add(new Group(
-//							groupResultSet.getLong("group_id"),
-//							groupResultSet.getLong("user_id"),
-//							groupResultSet.getString("name")
-//							));
-//				}
-//				JsonArray jarray = gson.toJsonTree(groupList).getAsJsonArray();
-//				jsonObject.add("GROUPLIST",jarray);
 				out.print(jsonObject.toString());
 				return;	
 			}else {

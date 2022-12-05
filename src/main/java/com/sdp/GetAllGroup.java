@@ -21,6 +21,9 @@ import com.google.gson.JsonObject;
 
 import Entity.Group;
 import Entity.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureException;
 
 /**
  * Servlet implementation class GetAllGroup
@@ -44,6 +47,13 @@ public class GetAllGroup extends HttpServlet {
 		// TODO Auto-generated method stub
 //		response.getWriter().append("Served at: ").append(request.getContextPath());
 		
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
 		setAccessControlHeaders(request, response);
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
@@ -60,8 +70,32 @@ public class GetAllGroup extends HttpServlet {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 			
-			preparedStatement = con.prepareStatement("select * from user where user_id ="+request.getParameter("user_id")+
-					" and active = 2;");
+			String user_id="0";
+			try {
+				String token = request.getParameter("token");
+				Claims claims = Jwts.parser().setSigningKey("somerandomtext").parseClaimsJws(token).getBody();
+				String email = claims.get("email", String.class);
+				String password = claims.get("password", String.class);
+				user_id = claims.get("user_id", String.class);
+				preparedStatement = con.prepareStatement("select * from user where email ='"+email+
+						"' and password = '"+password+"';");
+				resultSet = preparedStatement.executeQuery();
+				if(!resultSet.next() ) {
+					jsonObject = new JsonObject();
+					jsonObject.addProperty("SUCCESS", "FALSE");
+					jsonObject.addProperty("MESSAGE", "Authentication failed");
+					out.print(jsonObject.toString());
+					return;	
+				}
+			}
+			catch (SignatureException e) {  
+				jsonObject = new JsonObject();
+				jsonObject.addProperty("SUCCESS", "FALSE");
+				jsonObject.addProperty("MESSAGE", "Authentication failed");
+				out.print(jsonObject.toString());
+			}
+			
+			preparedStatement = con.prepareStatement("select * from user where user_id ="+user_id+" and active = 2;");
             resultSet = preparedStatement.executeQuery();
 			if(!resultSet.next()) {
 				jsonObject = new JsonObject();
@@ -81,7 +115,7 @@ public class GetAllGroup extends HttpServlet {
 			preparedStatement = con.prepareStatement("select member.group_id as group_id, member.name as group_name, T.user_name as user_name,T.active as active from member, "+
 			" (select user.name as user_name, user.user_id as user_id, group_id, group_table.active as active from user, group_table where user.user_id = group_table.user_id and group_table.active = 1) T "
 			+" where member.group_id = T.group_id and "
-			+ " member.user_id ="+request.getParameter("user_id"));	
+			+ " member.user_id ="+resultSet.getString("user_id"));	
 			}
 			ResultSet groupResultSet = preparedStatement.executeQuery();
 			ArrayList<Group> groupList = new ArrayList<>();
@@ -112,16 +146,6 @@ public class GetAllGroup extends HttpServlet {
 				e.printStackTrace();
 			}
 		}
-		
-		
-	}
-
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
 	}
 
 	private void setAccessControlHeaders(HttpServletRequest request, HttpServletResponse response) {

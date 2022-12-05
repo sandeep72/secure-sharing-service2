@@ -17,6 +17,10 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureException;
+
 /**
  * Servlet implementation class ApproveGroup
  */
@@ -47,11 +51,36 @@ public class ApproveGroup extends HttpServlet {
 		Gson gson = new Gson();
 		Connection con=null;
 		JsonObject jsonObject = null;
-		
+		String user_id="0";
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
-			preparedStatement = con.prepareStatement("select * from user where type = 'admin' and user_id ="+request.getParameter("user_id"));
+			
+			String token = request.getParameter("token");
+			try {
+				Claims claims = Jwts.parser().setSigningKey("somerandomtext").parseClaimsJws(token).getBody();
+				String email = claims.get("email", String.class);
+				String password = claims.get("password", String.class);
+				user_id = claims.get("user_id", String.class);
+				preparedStatement = con.prepareStatement("select * from user where type='admin' and email ='"+email+
+						"' and password = '"+password+"';");
+				resultSet = preparedStatement.executeQuery();
+				if(!resultSet.next() ) {
+					jsonObject = new JsonObject();
+					jsonObject.addProperty("SUCCESS", "FALSE");
+					jsonObject.addProperty("MESSAGE", "Authentication failed");
+					out.print(jsonObject.toString());
+					return;	
+				}
+			}
+			catch (SignatureException e) {  
+				jsonObject = new JsonObject();
+				jsonObject.addProperty("SUCCESS", "FALSE");
+				jsonObject.addProperty("MESSAGE", "Authentication failed");
+				out.print(jsonObject.toString());
+			}
+			
+			preparedStatement = con.prepareStatement("select * from user where type = 'admin' and user_id ="+user_id);
 			resultSet =  preparedStatement.executeQuery();
             if( !resultSet.next()) {
 				jsonObject = new JsonObject();
@@ -75,21 +104,6 @@ public class ApproveGroup extends HttpServlet {
 			}else {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "TRUE");
-//				preparedStatement = con.prepareStatement("select * from user where active = 1;");
-//				ResultSet userResultSet = preparedStatement.executeQuery();
-//				ArrayList<User> userList = new ArrayList<>();
-//				while(userResultSet.next()) {
-//					userList.add(new User(
-//							userResultSet.getLong("user_id"),
-//							userResultSet.getString("name"),
-//							userResultSet.getString("email"),
-//							"DUMMY",
-//							userResultSet.getInt("active"),
-//							userResultSet.getString("type")
-//							));
-//				}
-//				JsonArray jarray = gson.toJsonTree(userList).getAsJsonArray();
-//				jsonObject.add("USERLIST",jarray);
 				out.print(jsonObject.toString());
 				return;	
 			}
