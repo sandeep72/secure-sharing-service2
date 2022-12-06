@@ -78,6 +78,14 @@ public class Login extends HttpServlet {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			con = DriverManager.getConnection("jdbc:mysql://34.70.183.176:3306/securess", "root", "Mysql@123");
 			
+			if(request.getParameter("username").length()>100 || request.getParameter("password").length()>128) {
+				jsonObject = new JsonObject();
+				jsonObject.addProperty("SUCCESS", "FALSE");
+				jsonObject.addProperty("MESSAGE", "User data not correct");
+				out.print(jsonObject.toString());
+				return;	
+			}
+			
 			preparedStatement = con.prepareStatement("select * from user where email ='"+request.getParameter("username")+
 					"' and password = '"+request.getParameter("password")+"';");
 			
