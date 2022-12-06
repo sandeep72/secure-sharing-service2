@@ -97,7 +97,7 @@ public class GetNewCustomer extends HttpServlet {
 			
             jsonObject = new JsonObject();
 			jsonObject.addProperty("SUCCESS", "TRUE");
-			preparedStatement = con.prepareStatement("select * from user where active = 1;");
+			preparedStatement = con.prepareStatement("select * from user;");
 			ResultSet userResultSet = preparedStatement.executeQuery();
 			ArrayList<User> userList = new ArrayList<>();
 			while(userResultSet.next()) {
