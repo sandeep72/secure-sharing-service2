@@ -92,9 +92,11 @@ public class ApproveGroup extends HttpServlet {
 			
             if(request.getParameter("status").equals("Accept"))
             	preparedStatement = con.prepareStatement("update group_table set active = 1 where group_id ="+request.getParameter("group_id"));
-            else
+            else if(request.getParameter("status").equals("Reject"))
             	preparedStatement = con.prepareStatement("update group_table set active = 0 where group_id ="+request.getParameter("group_id"));
-            
+            else if(request.getParameter("status").equals("Delete")) {
+            	preparedStatement = con.prepareStatement("delete from group_table, member  where group_table.group_id = member.group.id and group_id ="+request.getParameter("group_id"));
+            }
 			if(preparedStatement.executeUpdate() == 0) {
 				jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");

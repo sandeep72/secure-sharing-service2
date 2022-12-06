@@ -85,11 +85,13 @@ public class ApproveMember extends HttpServlet {
 				out.print(jsonObject.toString());
 			}
 			
-            if(request.getParameter("status").equals("Accept"))
+			if(request.getParameter("status").equals("Accept"))
             	preparedStatement = con.prepareStatement("update user set active = 2 where user_id ="+request.getParameter("user_id"));
             else if(request.getParameter("status").equals("Reject"))
             	preparedStatement = con.prepareStatement("update user set active = 0 where user_id ="+request.getParameter("user_id"));
-            else {
+            else if(request.getParameter("status").equals("Delete")) {
+            	preparedStatement = con.prepareStatement("delete from user where user_id  ="+request.getParameter("user_id"));
+            }else {
             	jsonObject = new JsonObject();
 				jsonObject.addProperty("SUCCESS", "FALSE");
 				jsonObject.addProperty("MESSAGE", "Invalid Status for User");
